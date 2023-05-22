@@ -1,10 +1,14 @@
-const { PutObjectCommand, GetObjectCommand, DeleteObjectCommand } = require("@aws-sdk/client-s3");
+const {
+  PutObjectCommand,
+  GetObjectCommand,
+  DeleteObjectCommand,
+} = require("@aws-sdk/client-s3");
 const { getSignedUrl } = require("@aws-sdk/s3-request-presigner");
 
 const server = require("../server");
 
 exports.signImageUrl = async function (photo) {
-  if (!photo || photo.includes("assets")) return null;
+  if (!photo || photo.includes("assets")) return;
 
   const params = {
     Bucket: process.env.BUCKET_NAME,

@@ -1,6 +1,7 @@
 const User = require("../models/userModel");
 const sharp = require("sharp");
 const s3Util = require("../utils/s3Util");
+const AppError = require("../utils/AppError");
 
 const filterBody = body => {
   const { password, passwordConfirm, email, photo, cover, ...filteredBody } = body;
@@ -70,6 +71,60 @@ exports.updateMe = async (req, res, next) => {
   }
 };
 
+exports.getFollowingUsers = async (req, res, next) => {
+  try {
+    const queryParams = req.query;
+
+    if (!queryParams.user)
+      throw new AppError("Please use '{url}/users/following?user={userId}'", 400);
+
+    const currentUser = await User.findById(queryParams.user).populate({
+      path: "following",
+      select: "name photo photoUrl",
+    });
+
+    for (const user of currentUser.following) {
+      user.photoUrl = await s3Util.signImageUrl(user.photo);
+    }
+
+    res.status(200).json({
+      status: "success",
+      results: currentUser.following.length,
+      data: {
+        following: currentUser.following,
+      },
+    });
+  } catch (error) {
+    error.statusCode = 404;
+    next(error);
+  }
+};
+
+exports.getRecommendUsers = async (req, res, next) => {
+  try {
+    const currentUser = await User.findById(req.user._id);
+
+    const followingUsers = [...currentUser.following, req.user._id];
+
+    const recommendUser = await User.find({ _id: { $nin: followingUsers } }).limit(3);
+
+    for (const user of recommendUser) {
+      user.photoUrl = await s3Util.signImageUrl(user.photo);
+    }
+
+    res.status(200).json({
+      status: "success",
+      results: recommendUser.length,
+      data: {
+        recommend: recommendUser,
+      },
+    });
+  } catch (error) {
+    error.statusCode = 404;
+    next(error);
+  }
+};
+
 exports.getAllUsers = async (req, res, next) => {
   try {
     const users = await User.find();
@@ -106,6 +161,34 @@ exports.getUserById = async (req, res, next) => {
     });
   } catch (error) {
     error.statusCode = 404;
+    next(error);
+  }
+};
+
+exports.searchUserByName = async (req, res, next) => {
+  try {
+    const queryParams = req.query;
+
+    if (!queryParams.name)
+      throw new AppError("Please use '{url}/users?name={query}' to search", 400);
+
+    // Reg-ex to match pattern and case-insensitive option
+    const users = await User.find({
+      name: { $regex: `${queryParams.name}`, $options: "i" },
+    });
+
+    for (const user of users) {
+      user.photoUrl = await s3Util.signImageUrl(user.photo);
+    }
+
+    res.status(200).json({
+      status: "success",
+      results: users.length,
+      data: {
+        users,
+      },
+    });
+  } catch (error) {
     next(error);
   }
 };

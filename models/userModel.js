@@ -18,6 +18,7 @@ const userSchema = new mongoose.Schema({
     type: String,
     required: [true, "User must have a password"],
     select: false,
+    minlength: 6,
   },
   passwordConfirm: {
     type: String,
@@ -43,6 +44,7 @@ const userSchema = new mongoose.Schema({
   hometown: String,
   relationship: Boolean,
   biography: String,
+  following: [{ type: mongoose.Schema.ObjectId, ref: "User" }],
 });
 
 userSchema.pre("save", async function (next) {
