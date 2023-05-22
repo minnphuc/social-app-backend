@@ -16,7 +16,6 @@ const postSchema = new mongoose.Schema({
     required: [true, "Post must belong to a user"],
   },
   likedBy: [{ type: mongoose.Schema.ObjectId, ref: "User" }],
-  commentCount: { type: Number, default: 0 },
 });
 
 postSchema.pre(/^find/, function (next) {

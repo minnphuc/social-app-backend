@@ -2,6 +2,7 @@ const Post = require("../models/postModel");
 const sharp = require("sharp");
 
 const s3Util = require("../utils/s3Util");
+const AppError = require("../utils/AppError");
 
 exports.processImage = async (req, res, next) => {
   if (!req.file) return next();
@@ -47,6 +48,59 @@ exports.createPost = async (req, res, next) => {
 exports.getAllPosts = async (req, res, next) => {
   try {
     const posts = await Post.find();
+
+    for (const post of posts) {
+      post.user.photoUrl = await s3Util.signImageUrl(post.user.photo);
+
+      post.photoUrl = await s3Util.signImageUrl(post.photo);
+    }
+
+    res.status(200).json({
+      status: "success",
+      results: posts.length,
+      data: {
+        posts,
+      },
+    });
+  } catch (error) {
+    error.statusCode = 404;
+    next(error);
+  }
+};
+
+exports.getFollowingPosts = async (req, res, next) => {
+  try {
+    const postedBy = [...req.user.following, req.user._id];
+
+    const posts = await Post.find({ user: { $in: postedBy } }).sort("-postedAt");
+
+    for (const post of posts) {
+      post.user.photoUrl = await s3Util.signImageUrl(post.user.photo);
+
+      post.photoUrl = await s3Util.signImageUrl(post.photo);
+    }
+
+    res.status(200).json({
+      status: "success",
+      results: posts.length,
+      data: {
+        posts,
+      },
+    });
+  } catch (error) {
+    error.statusCode = 404;
+    next(error);
+  }
+};
+
+exports.getPostByUser = async (req, res, next) => {
+  try {
+    const queryParams = req.query;
+
+    if (!queryParams.user)
+      throw new AppError("Please use '{url}/posts?user={userId}'", 400);
+
+    const posts = await Post.find({ user: queryParams.user }).sort("-postedAt");
 
     for (const post of posts) {
       post.user.photoUrl = await s3Util.signImageUrl(post.user.photo);
