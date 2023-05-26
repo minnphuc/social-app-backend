@@ -1,6 +1,7 @@
 const Conversation = require("../models/conversationModel");
 
 const s3Util = require("../utils/s3Util");
+const AppError = require("../utils/AppError");
 
 exports.createConversation = async (req, res, next) => {
   try {
@@ -21,7 +22,6 @@ exports.createConversation = async (req, res, next) => {
       },
     });
   } catch (error) {
-    error.statusCode = 404;
     next(error);
   }
 };
@@ -46,7 +46,6 @@ exports.getMyConversation = async (req, res, next) => {
       },
     });
   } catch (error) {
-    error.statusCode = 404;
     next(error);
   }
 };
@@ -56,6 +55,8 @@ exports.getConversation = async (req, res, next) => {
     const conversation = await Conversation.findOne({
       members: { $all: [req.user._id, req.params.receiverId] },
     });
+
+    if (!conversation) throw new AppError("Conversation did not exist", 404);
 
     for (const member of conversation.members) {
       member.photoUrl = await s3Util.signImageUrl(member.photo);
@@ -68,7 +69,6 @@ exports.getConversation = async (req, res, next) => {
       },
     });
   } catch (error) {
-    error.statusCode = 404;
     next(error);
   }
 };

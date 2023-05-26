@@ -34,6 +34,8 @@ app.use((err, req, res, next) => {
   err.statusCode = err.statusCode || 500;
   err.message = err.message || "Something went wrong. Please try again!";
 
+  console.log(err);
+
   res.status(err.statusCode).json({
     status: err.statusCode.toString().startsWith("4") ? "fail" : "error",
     data: {

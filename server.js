@@ -23,12 +23,14 @@ exports.s3Client = new S3Client({
   },
 });
 
-// CREATE SERVER AND CONNECT TO SOCKET.IO SERVER
+// CREATE AND CONNECT TO SOCKET.IO SERVER
 const server = http.createServer(app);
 const io = new Server(server, {
   cors: {
-    // origin: "http://localhost:8080",
-    origin: "https://socialapp-minnphuc.netlify.app",
+    origin:
+      process.env.NODE_ENV === "development"
+        ? process.env.FRONTEND_URL_DEV
+        : process.env.FRONTEND_URL,
     methods: ["GET", "POST"],
   },
 });
@@ -74,7 +76,7 @@ io.on("connection", socket => {
   });
 });
 
-// START THE SERVER
+// START THE SERVER (flexible port needed for deployment)
 const port = process.env.PORT || 3000;
 server.listen(port, () => console.log(`Server is running on port ${port}...`));
 

@@ -1,3 +1,4 @@
+const crypto = require("crypto");
 const mongoose = require("mongoose");
 const validator = require("validator");
 const bcrypt = require("bcrypt");
@@ -30,6 +31,8 @@ const userSchema = new mongoose.Schema({
       message: "Password confirm doesn't match the password",
     },
   },
+  passwordResetToken: String,
+  passwordResetExpires: Date,
   photo: {
     type: String,
     default: "/assets/default.jpg",
@@ -47,7 +50,10 @@ const userSchema = new mongoose.Schema({
   following: [{ type: mongoose.Schema.ObjectId, ref: "User" }],
 });
 
+// Mongoose middleware
 userSchema.pre("save", async function (next) {
+  if (!this.isModified("password")) return next();
+
   const encryptedPassword = await bcrypt.hash(this.password, 12);
 
   this.passwordConfirm = undefined;
@@ -55,6 +61,18 @@ userSchema.pre("save", async function (next) {
 
   next();
 });
+
+// Mongoose instance method
+userSchema.methods.createPasswordResetToken = function () {
+  const resetToken = crypto.randomBytes(32).toString("hex");
+
+  this.passwordResetToken = crypto.createHash("sha256").update(resetToken).digest("hex");
+
+  // 10min
+  this.passwordResetExpires = Date.now() + 10 * 60 * 1000;
+
+  return resetToken;
+};
 
 const User = mongoose.model("User", userSchema);
 

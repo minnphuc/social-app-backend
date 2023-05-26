@@ -10,7 +10,6 @@ exports.processImage = async (req, res, next) => {
   req.file.filename = `post-${req.user._id}-${Date.now()}.jpeg`;
 
   const buffer = await sharp(req.file.buffer)
-    .resize(700, 400)
     .toFormat("jpeg")
     .jpeg({ quality: 90 })
     .toBuffer();
@@ -133,6 +132,23 @@ exports.updatePost = async (req, res, next) => {
       data: {
         post: updatedPost,
       },
+    });
+  } catch (error) {
+    error.statusCode = 404;
+    next(error);
+  }
+};
+
+exports.deletePost = async (req, res, next) => {
+  try {
+    const post = await Post.findOne({ _id: req.params.id });
+
+    await s3Util.deleteImage(post.photo);
+    await Post.deleteOne({ _id: post._id });
+
+    res.status(204).json({
+      status: "success",
+      data: null,
     });
   } catch (error) {
     error.statusCode = 404;
