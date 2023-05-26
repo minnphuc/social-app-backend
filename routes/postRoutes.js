@@ -25,6 +25,9 @@ router
 
 router.route("/following").get(authController.protect, postController.getFollowingPosts);
 
-router.route("/:id").patch(authController.protect, postController.updatePost);
+router
+  .route("/:id")
+  .patch(authController.protect, postController.updatePost)
+  .delete(postController.deletePost);
 
 module.exports = router;
